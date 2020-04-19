@@ -1,0 +1,164 @@
+service: serverless-python
+
+provider:
+  name: aws
+  runtime: python3.7
+  timeout: 10
+  stage: ${opt:stage}
+  region: us-west-2
+
+  environment:
+    REGION: ${self:provider.region}
+    STAGE: ${self:provider.stage}
+    API_KEY: ${env:LAMBDA_API_KEY}
+    ACCOUNT_ID: ${env:ACCOUNT_ID}
+
+  tags:
+    Name: serverless-lambda
+
+  iamRoleStatements:
+    - Effect: "Allow"
+      Action:
+        - lambda:*
+      Resource: "*"
+    - Effect: "Allow"
+      Action:
+        - states:StartExecution
+      Resource: "*"
+    - Effect: "Allow"
+      Action:
+        - dynamodb:*
+      Resource: "*"
+
+functions:
+  crypto-exchange:
+    handler: crypto.query
+    name: ${opt:stage}-crypto-query
+    events:
+      - schedule: cron(0 12 * * ? *)
+      - http:
+          path: /crypto-exchange-rate
+          method: get
+          private: true
+          cors: true
+  crypto-read:
+    handler: exchange-info.crypto
+    name: ${opt:stage}-crypto-get
+    events:
+      - http:
+          path: /crypto
+          method: get
+          private: true
+          cors: true
+  crypto-write:
+    handler: exchange-update.crypto
+    name: ${opt:stage}-crypto-put
+    events:
+      - http:
+          path: /crypto
+          method: put
+          private: true
+          cors: true
+  currency-exchange:
+    handler: currency.query
+    name: ${opt:stage}-currency-query
+    events:
+      - schedule: cron(0 12 * * ? *)
+      - http:
+          path: /currency-exchange-rate
+          method: get
+          private: true
+          cors: true
+  currency-read:
+    handler: exchange-info.currency
+    name: ${opt:stage}-currency-get
+    events:
+      - http:
+          path: /currency
+          method: get
+          private: true
+          cors: true
+  currency-write:
+    handler: exchange-update.currency
+    name: ${opt:stage}-currency-put
+    events:
+      - http:
+          path: /currency
+          method: put
+          private: true
+          cors: true
+
+package:
+  individually: true
+  exclude:
+    - "**"
+  include:
+    - "init.py"
+    - "crypto.py"
+    - "currency.py"
+    - "exchange-info.py"
+    - "exchange-update.py"
+    - "./package.json"
+    - "./requirements.txt"
+    - "./node_module/**"
+
+plugins:
+  - serverless-python-requirements
+  - serverless-offline
+  - serverless-add-api-key
+  - serverless-step-functions
+  - serverless-step-functions-offline
+
+custom:
+  stage: ${opt:stage, self.provider:stage}
+  apiKeys:
+    - name: serverless-api-key
+      value: ${env:LAMBDA_API_KEY}
+#  stepFunctionsOffline:
+#    CryptoExchangeFunction: cryptoExchangeFunction
+#    CurrencyExchangeFunction: currencyExchangeFunction
+
+resources:
+  Resources:
+    CurrencyDynamoDBTable:
+      Type: 'AWS::DynamoDB::Table'
+      Properties:
+        AttributeDefinitions:
+          - AttributeName: itemId
+            AttributeType: S
+        KeySchema:
+          - AttributeName: itemId
+            KeyType: HASH
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
+        TableName: ${opt:stage}-currency-table
+    CryptoDynamoDBTable:
+      Type: 'AWS::DynamoDB::Table'
+      Properties:
+        AttributeDefinitions:
+          - AttributeName: itemId
+            AttributeType: S
+        KeySchema:
+          - AttributeName: itemId
+            KeyType: HASH
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
+        TableName: ${opt:stage}-crypto-table
+
+#stepFunctions:
+#  stateMachines:
+#    exchangeFunction:
+#      definition:
+#        Comment: "An example of the Amazon States Language using wait states"
+#        StartAt: cryptoExchangeFunction
+#        States:
+#          FirstLambda:
+#            Type: Task
+#            Resource: "arn:aws:lambda:#{AWS::Region}:#{AWS::AccountId}:function:${self:service}-${opt:stage}-crypto-query"
+#            Next: currencyExchangeFunction
+#          SecondLambda:
+#            Type: Task
+#            Resource: "arn:aws:lambda:#{AWS::Region}:#{AWS::AccountId}:function:${self:service}-${opt:stage}-currency-query"
+#            End: true

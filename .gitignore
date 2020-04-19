@@ -1,0 +1,10 @@
+# Distribution / packaging
+.Python
+venv/
+node_modules/
+.idea/
+
+# Serverless directories
+.serverless
+
+

@@ -1,0 +1,29 @@
+{
+  "name": "aws-serverless-lambda",
+  "version": "0.0.1",
+  "description": "Creating micro-services using API Gateway, Lambda, Step-functions through Serverless Framework  ",
+  "main": "handler.js",
+  "scripts": {
+    "test": "npm test"
+  },
+  "keywords": [
+    "AWS",
+    "Python",
+    "Lambda",
+    "StepFunction",
+    "Serverless"
+  ],
+  "author": "Amit Kumar <Singhakumar.18@gmail.com>",
+  "license": "MIT",
+  "devDependencies": {
+    "serverless-offline": "^6.1.4",
+    "serverless-python-requirements": "^5.1.0",
+    "serverless-step-functions-offline": "^2.1.4"
+  },
+  "dependencies": {
+    "aws-sdk": "^2.657.0",
+    "serverless-add-api-key": "^4.1.0",
+    "serverless-package-python-functions": "^0.6.1",
+    "serverless-step-functions": "^2.18.0"
+  }
+}
